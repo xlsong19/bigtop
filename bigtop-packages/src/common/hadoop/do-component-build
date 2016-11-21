@@ -39,6 +39,28 @@ if [ $HOSTTYPE = "powerpc64le" ] ; then
         #cleanup
         rm -rf ${LEVELDBJNI_HOME}
         rm -rf ${LEVELDB_HOME}
+elif [ $HOSTTYPE = "aarch64" ] ; then
+        #download the ARM64 version of leveldb
+        git clone https://github.com/weidongxing/leveldb.git
+        git clone https://github.com/weidongxing/leveldbjni.git
+        export SNAPPY_HOME=/usr/lib/aarch64-linux-gnu
+        export LEVELDB_HOME=`cd leveldb; pwd`
+        export LEVELDBJNI_HOME=`cd leveldbjni; pwd`
+        cd ${LEVELDB_HOME}
+        export LIBRARY_PATH=${SNAPPY_HOME}
+        export C_INCLUDE_PATH=${LIBRARY_PATH}
+        export CPLUS_INCLUDE_PATH=${LIBRARY_PATH}
+        git apply ../leveldbjni/leveldb.patch
+        make
+        cp out-static/libleveldb.a .
+        #Now use maven to build and update the local maven repository with aarch64 version of
+        #leveldbjni.
+        cd ${LEVELDBJNI_HOME}
+        mvn clean install -DskipTests -P download -Plinux64,all
+        cd ..
+        #cleanup
+        rm -rf ${LEVELDBJNI_HOME}
+        rm -rf ${LEVELDB_HOME}
 fi
 ## BIGTOP-2288
 
@@ -47,6 +69,7 @@ fi
 if [ -z "$BUNDLE_SNAPPY" ] ; then
   [ -f /usr/lib/libsnappy.so ] && BUNDLE_SNAPPY="-Dsnappy.prefix=x -Dbundle.snappy=true -Dsnappy.lib=/usr/lib"
   [ -f /usr/lib64/libsnappy.so ] && BUNDLE_SNAPPY="-Dsnappy.prefix=x -Dbundle.snappy=true -Dsnappy.lib=/usr/lib64"
+  [ -f /usr/lib/aarch64-linux-gnu/libsnappy.so ] && BUNDLE_SNAPPY="-Dsnappy.prefix=x -Dbundle.snappy=true -Dsnappy.lib=/usr/lib/aarch64-linux-gnu"
 fi
 
 mkdir build
